@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò Chơi Tách Kim Loại - Bài 20 Hóa 12</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
+        body { font-family: 'Be Vietnam Pro', sans-serif; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .hidden { display: none !important; }
+        
+        /* Hiệu ứng Modal */
+        .modal-enter { animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes modalSlideUp {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800">
+
+    <div id="app" class="relative min-h-screen flex flex-col">
+        
+        <div id="screen-welcome" class="flex-1 flex items-center justify-center p-4 fade-in">
+            <div class="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden">
+                <div class="bg-indigo-600 p-6 text-center">
+                    <h1 class="text-2xl font-bold text-white mb-2 uppercase">Trò Chơi Tách Kim Loại</h1>
+                    <p class="text-indigo-200 text-sm">Bài 20 - Hóa học 12 KNTT</p>
+                </div>
+                <div class="p-8 space-y-6">
+                    <div class="text-center text-gray-500 text-sm italic">Thiết kế bởi GV: Nguyễn Mạnh Hưng</div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Họ và tên học sinh</label>
+                            <input type="text" id="input-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Nhập họ và tên...">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Lớp</label>
+                            <input type="text" id="input-class" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Ví dụ: 12A1">
+                        </div>
+                    </div>
+                    <button onclick="game.start()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-indigo-200">
+                        <i data-lucide="play" class="w-5 h-5"></i> Bắt đầu Trò chơi
+                    </button>
+                    <button onclick="ui.showLeaderboard()" class="w-full bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition">
+                        <i data-lucide="list" class="w-5 h-5"></i> Xem Bảng Xếp Hạng
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-playing" class="hidden flex-col min-h-screen fade-in">
+            <header class="bg-white shadow-sm p-4 sticky top-0 z-10">
+                <div class="max-w-4xl mx-auto flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-indigo-100 p-2 rounded-lg"><i data-lucide="trophy" class="w-6 h-6 text-indigo-600"></i></div>
+                        <div>
+                            <p class="text-xs text-gray-500">Điểm số</p>
+                            <p id="score-display" class="text-xl font-bold text-gray-800">0</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 font-mono text-lg font-bold text-gray-700">
+                        <i data-lucide="clock" class="w-5 h-5"></i>
+                        <span id="timer-display">0:00</span>
+                    </div>
+                </div>
+                <div class="h-2 bg-gray-200 mt-4 rounded-full overflow-hidden max-w-4xl mx-auto">
+                    <div id="progress-bar" class="h-full bg-indigo-500 transition-all duration-500 ease-out" style="width: 0%"></div>
+                </div>
+            </header>
+
+            <main class="flex-1 max-w-3xl mx-auto w-full p-4 flex flex-col justify-center">
+                <div class="bg-white rounded-2xl shadow-lg p-6 md:p-10 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4">
+                        <span id="difficulty-badge" class="px-3 py-1 rounded-full text-xs font-bold uppercase bg-gray-100 text-gray-700">Difficulty</span>
+                    </div>
+                    <h2 id="question-number" class="text-gray-500 text-sm font-semibold mb-2">Câu hỏi 1/25</h2>
+                    <p id="question-text" class="text-xl md:text-2xl font-bold text-gray-800 mb-8 leading-relaxed">Nội dung câu hỏi...</p>
+                    <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        </div>
+                </div>
+            </main>
+        </div>
+
+        <div id="feedback-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+            <div id="feedback-content" class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden modal-enter">
+                <div id="feedback-header" class="p-4 flex items-center gap-3 bg-gray-100 border-b">
+                    <div id="feedback-icon-wrapper"></div>
+                    <h3 id="feedback-title" class="text-lg font-bold">Kết quả</h3>
+                </div>
+                <div class="p-6">
+                    <div class="mb-6">
+                         <h4 class="text-xs font-bold text-gray-400 uppercase mb-1">Giải thích:</h4>
+                         <p id="feedback-text" class="text-gray-700 leading-relaxed text-base">Giải thích...</p>
+                    </div>
+                    <button onclick="game.nextQuestion()" id="next-btn" class="w-full py-3 px-6 rounded-xl font-bold text-white shadow-lg transition flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95">
+                        Câu tiếp theo <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-result" class="hidden flex-1 items-center justify-center p-4 bg-indigo-900 relative overflow-hidden fade-in">
+             <div class="absolute top-0 left-0 w-64 h-64 bg-indigo-800 rounded-full mix-blend-multiply filter blur-xl opacity-70"></div>
+             <div class="absolute top-0 right-0 w-64 h-64 bg-purple-800 rounded-full mix-blend-multiply filter blur-xl opacity-70"></div>
+             
+             <div class="bg-white max-w-md w-full rounded-3xl shadow-2xl p-8 relative z-10 text-center">
+                <div class="w-24 h-24 bg-yellow-400 rounded-full flex items-center justify-center mx-auto -mt-20 mb-6 shadow-lg border-4 border-white">
+                    <i data-lucide="trophy" class="w-12 h-12 text-yellow-800"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-1">Hoàn thành!</h2>
+                <p id="result-student-info" class="text-gray-500 mb-6">Học sinh - Lớp</p>
+                <div class="grid grid-cols-2 gap-4 mb-8">
+                    <div class="bg-indigo-50 p-4 rounded-2xl">
+                        <p class="text-xs text-indigo-400 uppercase font-bold tracking-wider">Tổng điểm</p>
+                        <p id="final-score" class="text-3xl font-black text-indigo-700">0/100</p>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-2xl">
+                        <p class="text-xs text-purple-400 uppercase font-bold tracking-wider">Thời gian</p>
+                        <p id="final-time" class="text-3xl font-black text-purple-700">0:00</p>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <button onclick="game.reset()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition">
+                        <i data-lucide="refresh-ccw" class="w-4 h-4"></i> Chơi lại
+                    </button>
+                    <button onclick="ui.showLeaderboard()" class="w-full bg-white border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition">
+                        <i data-lucide="list" class="w-4 h-4"></i> Xem Xếp Hạng Lớp
+                    </button>
+                </div>
+             </div>
+        </div>
+
+        <div id="screen-leaderboard" class="hidden flex-1 p-4 bg-gray-50 fade-in">
+            <div class="max-w-4xl mx-auto">
+                <div class="flex items-center justify-between mb-6">
+                    <button onclick="ui.showWelcome()" class="flex items-center gap-2 text-gray-600 hover:text-indigo-600 font-medium">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i> Quay lại
+                    </button>
+                    <h1 class="text-2xl font-bold text-gray-800">Bảng Kết Quả</h1>
+                    <button onclick="lb.toggleTeacherMode()" id="teacher-mode-btn" class="text-xs px-3 py-1 rounded border bg-white text-gray-500">
+                        Giáo viên
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm p-4 mb-6">
+                    <div class="flex flex-col md:flex-row gap-4 justify-between items-center">
+                        <div class="relative w-full md:w-64">
+                            <i data-lucide="book-open" class="absolute left-3 top-2.5 w-5 h-5 text-gray-400"></i>
+                            <input type="text" id="lb-filter" oninput="lb.renderTable()" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Lọc theo lớp (VD: 12A1)">
+                        </div>
+                        <div class="flex gap-2 w-full md:w-auto">
+                            <button onclick="lb.downloadCSV()" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                                <i data-lucide="download" class="w-4 h-4"></i> Tải kết quả
+                            </button>
+                            <button id="btn-delete-class" onclick="lb.clearClassResults()" class="hidden flex-1 md:flex-none flex items-center justify-center gap-2 bg-red-100 text-red-700 border border-red-200 px-4 py-2 rounded-lg hover:bg-red-200 transition">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i> Xóa lớp này
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hạng</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Họ và Tên</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lớp</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Điểm</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lb-table-body" class="bg-white divide-y divide-gray-200">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DATA ---
+        const QUESTION_BANK = [
+            { id: 1, text: "Trong tự nhiên, hầu hết các kim loại tồn tại ở dạng nào?", options: ["Dạng đơn chất (tự do)", "Dạng hợp chất (quặng)", "Dạng hợp kim", "Dạng khí"], correctAnswer: "Dạng hợp chất (quặng)", explanation: "Trừ một số ít kim loại quý (Au, Pt), hầu hết kim loại tồn tại dưới dạng hợp chất (muối, oxide,...) trong quặng.", difficulty: 'NB', duration: 15 },
+            { id: 2, text: "Quặng Hematite là nguyên liệu chính để sản xuất kim loại nào?", options: ["Aluminium (nhôm)", "Iron (sắt)", "Copper (đồng)", "Sodium (natri)"], correctAnswer: "Iron (sắt)", explanation: "Hematite chứa thành phần chính là Fe₂O₃, dùng để sản xuất Iron (sắt).", difficulty: 'NB', duration: 15 },
+            { id: 3, text: "Quặng Bauxite là nguyên liệu chính để sản xuất kim loại nào?", options: ["Aluminium (nhôm)", "Iron (sắt)", "Magnesium", "Zinc (kẽm)"], correctAnswer: "Aluminium (nhôm)", explanation: "Bauxite chứa Al₂O₃.2H₂O, là nguồn nguyên liệu chính để sản xuất Aluminium.", difficulty: 'NB', duration: 15 },
+            { id: 4, text: "Phương pháp nào thường được dùng để điều chế các kim loại hoạt động hóa học mạnh (như K, Na, Ca, Al)?", options: ["Nhiệt luyện", "Thủy luyện", "Điện phân nóng chảy", "Điện phân dung dịch"], correctAnswer: "Điện phân nóng chảy", explanation: "Kim loại mạnh chỉ có thể được tách ra khỏi hợp chất bằng phương pháp điện phân nóng chảy.", difficulty: 'NB', duration: 15 },
+            { id: 5, text: "Trong phương pháp nhiệt luyện, chất nào sau đây thường được dùng làm chất khử?", options: ["O₂", "CO (Carbon monoxide)", "Cl₂", "H₂O"], correctAnswer: "CO (Carbon monoxide)", explanation: "Trong nhiệt luyện, các chất khử phổ biến là C, CO, H₂ hoặc Al.", difficulty: 'NB', duration: 15 },
+            { id: 6, text: "Phương pháp thủy luyện thường được dùng để tách các kim loại có mức độ hoạt động như thế nào?", options: ["Rất mạnh", "Mạnh", "Trung bình và yếu (Cu, Ag, Au)", "Tất cả các kim loại"], correctAnswer: "Trung bình và yếu (Cu, Ag, Au)", explanation: "Thủy luyện dùng để tách kim loại yếu hoặc trung bình từ quặng hoặc phế liệu.", difficulty: 'NB', duration: 15 },
+            { id: 7, text: "Trong quá trình điện phân, cực dương được gọi là gì?", options: ["Cathode", "Anode", "Điện cực trơ", "Cầu muối"], correctAnswer: "Anode", explanation: "Theo quy ước quốc tế và SGK mới, cực dương là Anode (nơi xảy ra sự oxi hóa).", difficulty: 'NB', duration: 15 },
+            { id: 8, text: "Kim loại nào sau đây tồn tại ở dạng tự do (đơn chất) trong tự nhiên?", options: ["Sodium (Natri)", "Gold (Vàng)", "Iron (Sắt)", "Calcium (Canxi)"], correctAnswer: "Gold (Vàng)", explanation: "Gold (Au) là kim loại quý, rất trơ về mặt hóa học nên tồn tại ở dạng tự do.", difficulty: 'NB', duration: 15 },
+            { id: 9, text: "Nguyên tắc chung để điều chế kim loại là gì?", options: ["Oxi hóa ion kim loại thành nguyên tử", "Khử ion kim loại thành nguyên tử", "Hòa tan kim loại bằng acid", "Nung nóng quặng"], correctAnswer: "Khử ion kim loại thành nguyên tử", explanation: "Nguyên tắc: Mⁿ⁺ + ne → M (Khử ion kim loại dương thành nguyên tử trung hòa).", difficulty: 'NB', duration: 15 },
+            { id: 10, text: "Tại sao không thể điều chế Aluminium (nhôm) bằng phương pháp nhiệt luyện với chất khử là CO?", options: ["Vì Al nóng chảy ở nhiệt độ thấp", "Vì ion Al³⁺ có tính oxi hóa rất yếu, CO không khử được", "Vì quặng Bauxite hiếm", "Vì tạo ra hợp kim bền"], correctAnswer: "Vì ion Al³⁺ có tính oxi hóa rất yếu, CO không khử được", explanation: "Al là kim loại mạnh, liên kết Al-O rất bền vững, CO không đủ sức khử Al₂O₃.", difficulty: 'TH', duration: 30 },
+            { id: 11, text: "Trong sản xuất nhôm, vai trò chính của Cryolite (Na₃AlF₆) là gì?", options: ["Làm chất xúc tác", "Giảm nhiệt độ nóng chảy của Al₂O₃ và tăng độ dẫn điện", "Làm chất khử", "Tạo màu cho nhôm"], correctAnswer: "Giảm nhiệt độ nóng chảy của Al₂O₃ và tăng độ dẫn điện", explanation: "Cryolite giúp hạ nhiệt độ nóng chảy từ ~2050°C xuống ~900°C, tiết kiệm năng lượng.", difficulty: 'TH', duration: 30 },
+            { id: 12, text: "Phản ứng nào sau đây mô tả đúng quá trình xảy ra tại Cathode (cực âm) khi điện phân Al₂O₃ nóng chảy?", options: ["2O²⁻ → O₂ + 4e", "Al → Al³⁺ + 3e", "Al³⁺ + 3e → Al", "C + O₂ → CO₂"], correctAnswer: "Al³⁺ + 3e → Al", explanation: "Tại Cathode (âm) hút ion dương (Al³⁺), xảy ra quá trình khử: Al³⁺ + 3e → Al.", difficulty: 'TH', duration: 30 },
+            { id: 13, text: "Trong lò cao luyện gang thép, phản ứng chính để tách Iron (sắt) ra khỏi oxide là:", options: ["Fe₂O₃ + 3H₂O → 2Fe(OH)₃", "Fe₂O₃ + 3CO → 2Fe + 3CO₂ (nhiệt độ cao)", "2Fe + 3Cl₂ → 2FeCl₃", "FeO + 2HCl → FeCl₂ + H₂O"], correctAnswer: "Fe₂O₃ + 3CO → 2Fe + 3CO₂ (nhiệt độ cao)", explanation: "CO khử oxide sắt ở nhiệt độ cao là phản ứng chủ đạo trong lò cao.", difficulty: 'TH', duration: 30 },
+            { id: 14, text: "Phương pháp thủy luyện dùng để tách Copper (đồng) từ quặng nghèo thường trải qua các bước nào?", options: ["Nung chảy -> Điện phân", "Hòa tan bằng dung dịch thích hợp -> Dùng kim loại mạnh hơn đẩy Copper ra", "Đốt cháy trong khí O₂", "Cho tác dụng với nước"], correctAnswer: "Hòa tan bằng dung dịch thích hợp -> Dùng kim loại mạnh hơn đẩy Copper ra", explanation: "Ví dụ: Dùng Fe đẩy Cu ra khỏi dung dịch muối đồng: Fe + CuSO₄ → FeSO₄ + Cu.", difficulty: 'TH', duration: 30 },
+            { id: 15, text: "Phát biểu nào SAI khi nói về tái chế kim loại?", options: ["Tiết kiệm tài nguyên thiên nhiên", "Giảm thiểu ô nhiễm môi trường", "Tiêu tốn nhiều năng lượng hơn so với sản xuất từ quặng", "Giảm lượng chất thải rắn"], correctAnswer: "Tiêu tốn nhiều năng lượng hơn so với sản xuất từ quặng", explanation: "Tái chế (đặc biệt là nhôm) tiêu tốn ít năng lượng hơn rất nhiều (chỉ khoảng 5%) so với sản xuất từ quặng.", difficulty: 'TH', duration: 30 },
+            { id: 16, text: "Phản ứng nhiệt nhôm (Thermite) được ứng dụng để làm gì?", options: ["Sản xuất nhôm", "Hàn đường ray xe lửa", "Làm sạch gỉ sắt", "Điện phân dung dịch"], correctAnswer: "Hàn đường ray xe lửa", explanation: "Phản ứng sinh nhiệt rất lớn, tạo sắt nóng chảy lấp đầy khe hở: 2Al + Fe₂O₃ → Al₂O₃ + 2Fe.", difficulty: 'TH', duration: 30 },
+            { id: 17, text: "Tại sao cần phải làm sạch quặng trước khi tiến hành tách kim loại?", options: ["Để kim loại đẹp hơn", "Để loại bỏ tạp chất (đất đá), tăng hiệu suất và chất lượng sản phẩm", "Để làm mềm quặng", "Để quặng dễ tan trong nước"], correctAnswer: "Để loại bỏ tạp chất (đất đá), tăng hiệu suất và chất lượng sản phẩm", explanation: "Loại bỏ tạp chất giúp quá trình khử hiệu quả hơn và kim loại thu được tinh khiết hơn.", difficulty: 'TH', duration: 30 },
+            { id: 18, text: "Khí thải chủ yếu gây hiệu ứng nhà kính trong quá trình luyện gang thép là gì?", options: ["SO₂", "NO₂", "CO₂", "H₂"], correctAnswer: "CO₂", explanation: "Quá trình đốt than cốc và khử quặng sắt sinh ra lượng lớn CO₂.", difficulty: 'TH', duration: 30 },
+            { id: 19, text: "Ghép nối đúng phương pháp tách cho các kim loại sau: (1) Na, (2) Fe, (3) Cu (từ quặng nghèo).", options: ["(1) Nhiệt luyện, (2) Thủy luyện, (3) Điện phân", "(1) Điện phân nóng chảy, (2) Nhiệt luyện, (3) Thủy luyện", "(1) Thủy luyện, (2) Điện phân nóng chảy, (3) Nhiệt luyện", "(1) Điện phân dung dịch, (2) Thủy luyện, (3) Nhiệt luyện"], correctAnswer: "(1) Điện phân nóng chảy, (2) Nhiệt luyện, (3) Thủy luyện", explanation: "Na (mạnh) -> ĐPNC; Fe (trung bình) -> Nhiệt luyện; Cu (quặng nghèo) -> Thủy luyện.", difficulty: 'VD', duration: 120 },
+            { id: 20, text: "Khi điện phân nóng chảy Al₂O₃, tại Anode (cực dương) thường bị ăn mòn. Nguyên nhân là do:", options: ["Anode làm bằng sắt tác dụng với nhôm", "Khí O₂ sinh ra ở nhiệt độ cao đốt cháy Anode làm bằng than chì (Carbon)", "Anode bị tan chảy do nhiệt độ cao", "Dòng điện quá lớn làm vỡ Anode"], correctAnswer: "Khí O₂ sinh ra ở nhiệt độ cao đốt cháy Anode làm bằng than chì (Carbon)", explanation: "C + O₂ → CO₂ / CO. Do đó cực dương làm bằng than chì phải thay thế thường xuyên.", difficulty: 'VD', duration: 120 },
+            { id: 21, text: "Để điều chế 5,4 tấn Aluminium (Nhôm) từ quặng Bauxite (chứa 100% Al₂O₃) với hiệu suất 100%, khối lượng quặng cần dùng là:", options: ["10,2 tấn", "20,4 tấn", "5,1 tấn", "15,3 tấn"], correctAnswer: "10,2 tấn", explanation: "2Al₂O₃ (2x102) → 4Al (4x27). Tỉ lệ: 204g oxit -> 108g Al. => m = (5.4 * 204) / 108 = 10.2 tấn.", difficulty: 'VD', duration: 120 },
+            { id: 22, text: "Trong thực tế, để tách Gold (Vàng) từ quặng chứa vàng lẫn đất đá, người ta thường dùng phương pháp Cyanide hóa (hòa tan bằng NaCN). Đây là ứng dụng của:", options: ["Phương pháp nhiệt luyện", "Phương pháp thủy luyện", "Phương pháp điện phân", "Phương pháp cơ học"], correctAnswer: "Phương pháp thủy luyện", explanation: "Dùng dung dịch NaCN hòa tan Au tạo phức chất, sau đó dùng Zn đẩy Au ra. Đây là đặc trưng của thủy luyện.", difficulty: 'VD', duration: 120 },
+            { id: 23, text: "Một nhà máy luyện kim muốn xử lý khí SO₂ sinh ra từ quá trình đốt quặng Sulfide (như FeS₂) để bảo vệ môi trường. Hóa chất rẻ tiền nhất nên dùng là:", options: ["Dung dịch HCl", "Nước cất", "Dung dịch nước vôi trong (Ca(OH)₂)", "Dung dịch NaCl"], correctAnswer: "Dung dịch nước vôi trong (Ca(OH)₂)", explanation: "Ca(OH)₂ là base rẻ tiền, dễ kiếm, phản ứng tốt với acidic oxide SO₂ tạo kết tủa CaSO₃.", difficulty: 'VD', duration: 120 },
+            { id: 24, text: "Tính khối lượng Fe thu được khi khử hoàn toàn 16g Fe₂O₃ bằng khí CO dư?", options: ["5.6g", "11.2g", "16.8g", "8.4g"], correctAnswer: "11.2g", explanation: "nFe₂O₃ = 16/160 = 0.1 mol. nFe = 2 * nFe₂O₃ = 0.2 mol. mFe = 0.2 * 56 = 11.2g.", difficulty: 'VD', duration: 120 },
+            { id: 25, text: "Cho luồng khí H₂ dư đi qua hỗn hợp bột các oxide nung nóng: CuO, MgO, Fe₂O₃. Chất rắn thu được sau phản ứng gồm:", options: ["Cu, Mg, Fe", "Cu, MgO, Fe", "CuO, MgO, Fe", "Cu, Mg, FeO"], correctAnswer: "Cu, MgO, Fe", explanation: "H₂ chỉ khử được oxide của kim loại sau Al. MgO không bị khử. CuO -> Cu, Fe₂O₃ -> Fe.", difficulty: 'VD', duration: 120 }
+        ];
+
+        // --- LOCAL STORAGE KEY ---
+        const LS_KEY = 'chemistry_quiz_results';
+
+        // --- GAME LOGIC ---
+        const state = {
+            questions: [],
+            currentQIndex: 0,
+            score: 0,
+            timeLeft: 0,
+            timer: null,
+            startTime: 0,
+            studentInfo: { name: '', class: '' },
+            leaderboardData: [],
+            isTeacherMode: false
+        };
+
+        const utils = {
+            shuffle: (arr) => [...arr].sort(() => Math.random() - 0.5),
+            formatTime: (s) => {
+                const m = Math.floor(s / 60);
+                const sec = s % 60;
+                return `${m}:${sec < 10 ? '0' : ''}${sec}`;
+            },
+            hideAllScreens: () => {
+                ['welcome', 'playing', 'result', 'leaderboard'].forEach(id => {
+                    const el = document.getElementById(`screen-${id}`);
+                    el.classList.add('hidden');
+                    el.classList.remove('flex'); // remove flex if present
+                });
+            },
+            showScreen: (id) => {
+                utils.hideAllScreens();
+                const el = document.getElementById(`screen-${id}`);
+                el.classList.remove('hidden');
+                // Restore flex layout for screens that need it
+                if (id === 'welcome' || id === 'result' || id === 'playing') el.classList.add('flex');
+                if (id === 'leaderboard') el.classList.add('block');
+                lucide.createIcons();
+            }
+        };
+
+        const ui = {
+            showWelcome: () => utils.showScreen('welcome'),
+            showPlaying: () => utils.showScreen('playing'),
+            showResult: () => {
+                const totalSeconds = Math.floor((Date.now() - state.startTime) / 1000);
+                document.getElementById('result-student-info').textContent = `${state.studentInfo.name} - ${state.studentInfo.class}`;
+                document.getElementById('final-score').textContent = `${state.score}/100`;
+                document.getElementById('final-time').textContent = utils.formatTime(totalSeconds);
+                utils.showScreen('result');
+                
+                // Save to LocalStorage instead of Firestore
+                if (state.studentInfo.name) {
+                    const result = {
+                        id: Date.now().toString(),
+                        studentName: state.studentInfo.name,
+                        className: state.studentInfo.class,
+                        score: state.score,
+                        totalTime: utils.formatTime(totalSeconds),
+                        rawTime: totalSeconds,
+                        timestamp: Date.now()
+                    };
+                    
+                    const currentData = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+                    currentData.push(result);
+                    localStorage.setItem(LS_KEY, JSON.stringify(currentData));
+                }
+            },
+            showLeaderboard: () => {
+                utils.showScreen('leaderboard');
+                lb.loadData();
+                lb.renderTable();
+            }
+        };
+
+        const game = {
+            start: () => {
+                const name = document.getElementById('input-name').value.trim();
+                const cls = document.getElementById('input-class').value.trim();
+                
+                if (!name || !cls) { alert("Vui lòng nhập đầy đủ thông tin!"); return; }
+                
+                state.studentInfo = { name, class: cls };
+                state.questions = utils.shuffle(QUESTION_BANK).map(q => ({...q, options: utils.shuffle(q.options)}));
+                state.currentQIndex = 0;
+                state.score = 0;
+                state.startTime = Date.now();
+                
+                ui.showPlaying();
+                game.loadQuestion();
+            },
+            
+            loadQuestion: () => {
+                const q = state.questions[state.currentQIndex];
+                state.timeLeft = q.duration;
+                
+                // Render UI
+                document.getElementById('score-display').textContent = state.score;
+                document.getElementById('question-number').textContent = `Câu hỏi ${state.currentQIndex + 1}/${state.questions.length}`;
+                document.getElementById('question-text').textContent = q.text;
+                
+                // Difficulty Badge
+                const badge = document.getElementById('difficulty-badge');
+                badge.textContent = q.difficulty === 'NB' ? 'Nhận biết' : q.difficulty === 'TH' ? 'Thông hiểu' : 'Vận dụng';
+                badge.className = `px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                    q.difficulty === 'NB' ? 'bg-green-100 text-green-700' :
+                    q.difficulty === 'TH' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'
+                }`;
+
+                // Options
+                const container = document.getElementById('options-container');
+                container.innerHTML = '';
+                q.options.forEach((opt, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = "p-4 rounded-xl border-2 text-left border-gray-200 hover:border-indigo-300 hover:bg-gray-50 transition relative active:scale-[0.98]";
+                    btn.innerHTML = `<span class="font-semibold mr-2 text-gray-400">${String.fromCharCode(65 + idx)}.</span>${opt}`;
+                    btn.onclick = () => game.handleAnswer(opt, q);
+                    container.appendChild(btn);
+                });
+                
+                // Progress
+                const pct = (state.currentQIndex / state.questions.length) * 100;
+                document.getElementById('progress-bar').style.width = `${pct}%`;
+
+                // Timer
+                clearInterval(state.timer);
+                game.updateTimerDisplay();
+                state.timer = setInterval(() => {
+                    state.timeLeft--;
+                    game.updateTimerDisplay();
+                    if(state.timeLeft <= 0) {
+                        clearInterval(state.timer);
+                        game.showFeedback(false, `Hết giờ! Đáp án đúng: ${q.correctAnswer}. ${q.explanation}`);
+                    }
+                }, 1000);
+            },
+
+            updateTimerDisplay: () => {
+                const timerEl = document.getElementById('timer-display');
+                timerEl.textContent = utils.formatTime(state.timeLeft);
+                if (state.timeLeft < 10) timerEl.classList.add('text-red-500', 'animate-pulse');
+                else timerEl.classList.remove('text-red-500', 'animate-pulse');
+            },
+
+            handleAnswer: (selected, q) => {
+                clearInterval(state.timer);
+                const isCorrect = selected === q.correctAnswer;
+                if (isCorrect) state.score += 4;
+                game.showFeedback(isCorrect, q.explanation);
+            },
+
+            showFeedback: (isCorrect, text) => {
+                const modal = document.getElementById('feedback-modal');
+                const header = document.getElementById('feedback-header');
+                const title = document.getElementById('feedback-title');
+                const iconWrapper = document.getElementById('feedback-icon-wrapper');
+                const content = document.getElementById('feedback-text');
+                const btn = document.getElementById('next-btn');
+
+                modal.classList.remove('hidden');
+                
+                header.className = `p-4 flex items-center gap-3 border-b ${isCorrect ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`;
+                
+                title.textContent = isCorrect ? 'Chính xác!' : 'Chưa chính xác!';
+                title.className = `text-lg font-bold ${isCorrect ? 'text-green-800' : 'text-red-800'}`;
+                
+                // Fix: Reset innerHTML to ensure icon renders every time
+                const iconName = isCorrect ? 'check-circle' : 'x-circle';
+                const iconColor = isCorrect ? 'text-green-600' : 'text-red-600';
+                iconWrapper.innerHTML = `<i data-lucide="${iconName}" class="w-8 h-8 ${iconColor}"></i>`;
+                
+                content.textContent = text;
+                
+                const isLast = state.currentQIndex >= state.questions.length - 1;
+                btn.innerHTML = isLast ? `Xem kết quả <i data-lucide="arrow-right" class="w-5 h-5"></i>` : `Câu tiếp theo <i data-lucide="arrow-right" class="w-5 h-5"></i>`;
+                
+                if(isCorrect) {
+                     btn.className = "w-full py-3 px-6 rounded-xl font-bold text-white shadow-lg transition flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 shadow-green-200";
+                } else {
+                     btn.className = "w-full py-3 px-6 rounded-xl font-bold text-white shadow-lg transition flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 shadow-red-200";
+                }
+
+                // Re-scan icons for the newly injected HTML
+                lucide.createIcons();
+            },
+
+            nextQuestion: () => {
+                document.getElementById('feedback-modal').classList.add('hidden');
+                if (state.currentQIndex < state.questions.length - 1) {
+                    state.currentQIndex++;
+                    game.loadQuestion();
+                } else {
+                    ui.showResult();
+                }
+            },
+            
+            reset: () => {
+                document.getElementById('input-name').value = '';
+                document.getElementById('input-class').value = '';
+                ui.showWelcome();
+            }
+        };
+
+        const lb = {
+            loadData: () => {
+                let data = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+                // Sort by score (desc), then by rawTime (asc) (simulated timestamp sort)
+                data.sort((a, b) => {
+                    if (b.score !== a.score) return b.score - a.score;
+                    return (a.rawTime || 0) - (b.rawTime || 0); // Less time is better? Or logic was time finished? Assuming simple score sort mostly.
+                });
+                state.leaderboardData = data;
+            },
+            renderTable: () => {
+                const filter = document.getElementById('lb-filter').value.toLowerCase();
+                const tbody = document.getElementById('lb-table-body');
+                tbody.innerHTML = '';
+                
+                const data = state.leaderboardData.filter(d => d.className.toLowerCase().includes(filter));
+                
+                if(data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-500">Chưa có kết quả.</td></tr>';
+                    return;
+                }
+
+                data.forEach((r, idx) => {
+                    const tr = document.createElement('tr');
+                    tr.className = idx < 3 ? 'bg-yellow-50/50' : '';
+                    let badgeClass = 'text-gray-500';
+                    if(idx === 0) badgeClass = 'bg-yellow-100 text-yellow-800';
+                    if(idx === 1) badgeClass = 'bg-gray-100 text-gray-800';
+                    if(idx === 2) badgeClass = 'bg-orange-100 text-orange-800';
+
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${badgeClass}">${idx + 1}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${r.studentName}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">${r.className}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">${r.score}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${r.totalTime}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            },
+            downloadCSV: () => {
+                const filter = document.getElementById('lb-filter').value.toLowerCase();
+                const data = state.leaderboardData.filter(d => d.className.toLowerCase().includes(filter));
+                const headers = ["Họ và tên", "Lớp", "Điểm", "Thời gian hoàn thành"];
+                const rows = data.map(r => [r.studentName, r.className, r.score, r.totalTime]);
+                const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers, ...rows].map(e => e.join(",")).join("\n");
+                const link = document.createElement("a");
+                link.href = encodeURI(csvContent);
+                link.download = `Ket_Qua_${filter || 'All'}.csv`;
+                link.click();
+            },
+            toggleTeacherMode: () => {
+                if(state.isTeacherMode) {
+                    state.isTeacherMode = false;
+                    document.getElementById('teacher-mode-btn').className = 'text-xs px-3 py-1 rounded border bg-white text-gray-500';
+                    document.getElementById('teacher-mode-btn').textContent = 'Giáo viên';
+                    document.getElementById('btn-delete-class').classList.add('hidden');
+                } else {
+                    const pass = prompt("Nhập mật khẩu giáo viên (1234):");
+                    if(pass === '1234') {
+                        state.isTeacherMode = true;
+                        document.getElementById('teacher-mode-btn').className = 'text-xs px-3 py-1 rounded border bg-indigo-600 text-white';
+                        document.getElementById('teacher-mode-btn').textContent = 'Chế độ GV: BẬT';
+                        document.getElementById('btn-delete-class').classList.remove('hidden');
+                    }
+                }
+            },
+            clearClassResults: () => {
+                const filter = document.getElementById('lb-filter').value.trim();
+                if(!filter) return alert("Nhập lớp cần xóa vào ô lọc!");
+                if(!confirm(`Xóa toàn bộ kết quả lớp ${filter}?`)) return;
+                
+                // Filter out the deleted class from local storage data
+                const newData = state.leaderboardData.filter(d => d.className.toLowerCase() !== filter.toLowerCase());
+                localStorage.setItem(LS_KEY, JSON.stringify(newData));
+                
+                lb.loadData();
+                lb.renderTable();
+                alert("Đã xóa!");
+            }
+        };
+
+        window.game = game;
+        window.ui = ui;
+        window.lb = lb;
+        
+        lucide.createIcons();
+        ui.showWelcome();
+    </script>
+</body>
+</html>
